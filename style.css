@@ -49,3 +49,11 @@ h1{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .n.dim{opacity:.3;border-color:var(--ln)}
 #tree.adm .n{cursor:grab;touch-action:none;user-select:none}
 .n.drag{z-index:5;cursor:grabbing;box-shadow:0 8px 20px #0007;transition:none}
+
+/* Panel lateral en pantallas anchas (en móvil sigue saliendo desde abajo) */
+@media (min-width:601px){
+ #sheet{left:auto;right:0;top:calc(env(safe-area-inset-top,0px) + 55px);bottom:0;width:380px;max-width:100vw;max-height:none;
+  border-top:0;border-left:1px solid var(--bd);border-radius:16px 0 0 0;transform:translateX(100%);box-shadow:-6px 0 20px #0003}
+ #wrap{padding-bottom:40px;transition:padding-right .25s}
+ body:has(#sheet.o) #wrap{padding-right:400px}
+}
