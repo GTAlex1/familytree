@@ -1,5 +1,7 @@
-let P=[],admin=false,sel=null,TREE=null,TN='',unsub=null,db,auth,user=null,CODES=[],NAMES={},ED=[],EN={};
-const canEdit=()=>admin||(user&&ED.includes(user.uid));
+let P=[],admin=false,sel=null,TREE=null,TN='',unsub=null,db,auth,user=null,CODES=[],NAMES={},ED=[],EN={},OWN='',UN='',ASKED=new Set();
+const isOwner=()=>!!(user&&OWN&&OWN===user.uid);
+const canManage=()=>admin||isOwner();
+const canEdit=()=>canManage()||!!(user&&ED.includes(user.uid));
 const clone=o=>JSON.parse(JSON.stringify(o));
 function save(){if(!TREE||!canEdit())return;db.collection('trees').doc(TREE).update({people:P}).catch(e=>alert('No se pudo guardar: '+e.message))}
 const $=id=>document.getElementById(id),by=id=>P.find(p=>p.id===id);
@@ -78,19 +80,46 @@ function modal(h){$('mb').innerHTML=h;$('modal').style.display='flex'}
 function hide(){$('modal').style.display='none'}
 $('modal').onclick=e=>{if(e.target.id==='modal')hide()};
 $('lb').onclick=()=>{if(user){auth.signOut();return}
- modal(`<h3 style="margin-top:0">Cuenta</h3><small>Con cuenta, tus códigos se guardan y no hace falta volver a escribirlos. Como invitado, tendrás que meterlos en cada recarga.</small><input id="u" placeholder="Usuario" autocapitalize="none" style="margin-top:10px"><input id="pw" type="password" placeholder="Contraseña"><div class="err" id="er"></div><button class="p" onclick="login()">Entrar</button> <button onclick="register()">Crear cuenta</button> <button onclick="hide()">Cancelar</button>`)};
+ modal(`<h3 style="margin-top:0">Cuenta</h3><small>Con cuenta, tus códigos se guardan y no hace falta volver a escribirlos. Como invitado, tendrás que meterlos en cada recarga.</small><button class="gbtn" style="margin-top:10px" onclick="googleLogin()">Continuar con Google</button><div class="sep">— o —</div><input id="u" placeholder="Usuario o correo" autocapitalize="none" autocomplete="username"><input id="pw" type="password" placeholder="Contraseña" autocomplete="current-password"><small>Para crear cuenta con correo, escríbelo en el primer campo. Después podrás elegir tu nombre de usuario en Perfil.</small><div class="err" id="er"></div><button class="p" onclick="login()">Entrar</button> <button onclick="register()">Crear cuenta</button> <button onclick="hide()">Cancelar</button>`)};
 const uname=()=>{const u=$('u').value.trim();return u.includes('@')?u:u.toLowerCase()+'@arbol.local'};
 async function login(){if(!$('u').value.trim()||!$('pw').value)return;
  try{await auth.signInWithEmailAndPassword(uname(),$('pw').value);hide()}catch(e){console.error(e);$('er').textContent=['auth/invalid-credential','auth/wrong-password','auth/user-not-found','auth/invalid-email'].includes(e.code)?'Usuario o contraseña incorrectos':'Error: '+(e.code||e.message)}}
-async function register(){const u=$('u').value.trim();
- if(!/^[A-Za-z0-9_.-]{3,20}$/.test(u))return $('er').textContent='Usuario: 3-20 caracteres (letras, números, _ . -)';
+async function register(){const u=$('u').value.trim(),mail=u.includes('@');
+ if(mail){if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(u))return $('er').textContent='Correo no válido'}
+ else if(!/^[A-Za-z0-9_.-]{3,20}$/.test(u))return $('er').textContent='Usuario: 3-20 caracteres (letras, números, _ . -)';
  if($('pw').value.length<6)return $('er').textContent='La contraseña necesita al menos 6 caracteres';
  try{const c=await auth.createUserWithEmailAndPassword(uname(),$('pw').value);
-  await db.collection('usernames').doc(u.toLowerCase()).set({uid:c.user.uid}).catch(()=>{});hide()}
- catch(e){console.error(e);$('er').textContent=e.code==='auth/email-already-in-use'?'Ese usuario ya existe':'Error: '+(e.code||e.message)}}
+  if(!mail)await db.collection('usernames').doc(u.toLowerCase()).set({uid:c.user.uid}).catch(()=>{});hide()}
+ catch(e){console.error(e);$('er').textContent=e.code==='auth/email-already-in-use'?(mail?'Ese correo ya tiene cuenta':'Ese usuario ya existe'):e.code==='auth/weak-password'?'Contraseña demasiado débil':'Error: '+(e.code||e.message)}}
+async function googleLogin(){const pr=new firebase.auth.GoogleAuthProvider();
+ try{await auth.signInWithPopup(pr);hide()}
+ catch(e){console.error(e);
+  if(e.code==='auth/popup-closed-by-user'||e.code==='auth/cancelled-popup-request')return;
+  if(e.code==='auth/popup-blocked')return auth.signInWithRedirect(pr);
+  $('er').textContent=e.code==='auth/operation-not-allowed'?'Google no está activado en Firebase (Authentication → Método de acceso)':e.code==='auth/unauthorized-domain'?'Este dominio no está autorizado en Firebase (Authentication → Configuración)':'Error: '+(e.code||e.message)}}
+
+// ---- Perfil ----
+function updateProfileBtn(){const b=$('pb');if(!user){b.style.display='none';return}
+ b.style.display='';b.classList.toggle('warn',!UN);b.querySelector('.pn').textContent=UN||'Perfil'}
+function profile(){if(!user)return;
+ const fake=(user.email||'').endsWith('@arbol.local'),
+  prov=fake?'Usuario y contraseña':user.providerData.some(p=>p.providerId==='google.com')?'Google':'Correo y contraseña',
+  hint=fake?'Es el nombre con el que inicias sesión; no se puede cambiar.':(UN?'':'Todavía no tienes nombre de usuario. ')+'Es el nombre con el que el admin puede añadirte como editor de un árbol. 3-20 caracteres: letras minúsculas, números, _ . -';
+ modal(`<div class="pf"><h3 style="margin-top:0">Perfil</h3><span class="tag">${prov}</span>${fake?'':`<small>Correo: ${esc(user.email||'—')}</small>`}Nombre de usuario<input id="pn" value="${esc(UN)}" placeholder="p. ej. maria_g" maxlength="20" autocapitalize="none" autocomplete="off" spellcheck="false" oninput="this.value=this.value.toLowerCase()" onkeydown="if(event.key==='Enter')saveUsername()" ${fake?'disabled':''}><small>${hint}</small><div class="err" id="er"></div><div class="ok" id="ok"></div>${fake?'':'<button class="p" onclick="saveUsername()">Guardar</button> '}<button onclick="hide()">${UN||fake?'Cerrar':'Más tarde'}</button></div>`)}
+$('pb').onclick=profile;
+async function saveUsername(){const n=$('pn').value.trim().toLowerCase();$('er').textContent=$('ok').textContent='';
+ if(!/^[a-z0-9_.-]{3,20}$/.test(n))return $('er').textContent='Nombre no válido: 3-20 caracteres (letras, números, _ . -)';
+ if(n===UN)return $('ok').textContent='Ya es tu nombre de usuario';
+ try{const ur=db.collection('usernames');
+  if((await ur.doc(n).get()).exists)return $('er').textContent='Ese nombre ya está en uso';
+  const b=db.batch();b.set(ur.doc(n),{uid:user.uid});
+  if(UN){const o=await ur.doc(UN).get();if(o.exists&&o.data().uid===user.uid)b.delete(ur.doc(UN))}
+  b.set(db.collection('users').doc(user.uid),{username:n},{merge:true});
+  await b.commit();UN=n;updateProfileBtn();$('ok').textContent='Guardado ✓'}
+ catch(e){console.error(e);$('er').textContent=e.code==='permission-denied'?'No se pudo guardar (¿nombre en uso?). Comprueba que has publicado las reglas de Firestore nuevas.':'Error: '+(e.code||e.message)}}
 async function isAdmin(u){return u.uid===window.ADMIN_UID}
-function setAdmin(v){admin=v;$('lb').textContent=user?'Salir':'Login';updateUI();sel?pick(sel):render()}
-function updateUI(){document.body.classList.toggle('isadmin',admin);$('tools').style.display=canEdit()?'flex':'none'}
+function setAdmin(v){admin=v;$('lb').textContent=user?'Salir':'Login';updateProfileBtn();updateUI();sel?pick(sel):render()}
+function updateUI(){const b=document.body.classList;b.toggle('isadmin',admin);b.toggle('ed',canEdit());b.toggle('mg',canManage());b.toggle('us',!!user);$('tools').style.display=(canEdit()||user)?'flex':'none'}
 function edit(id){if(!TREE)return alert('Primero abre o crea un árbol');const p=id?by(id):{name:'',g:'f',parents:[],partners:[]},o=P.filter(x=>x.id!==id);
  const cb=(n,l)=>o.map(x=>`<label class="c"><input type="checkbox" name="${n}" value="${x.id}" ${l.includes(x.id)?'checked':''}>${esc(x.name)}</label>`).join('')||'<small>—</small>';
  modal(`<h3 style="margin-top:0">${id?'Editar':'Añadir'} persona</h3>Nombre<input id="nm" value="${esc(p.name)}">Género<select id="gn"><option value="f" ${p.g=='f'?'selected':''}>Femenino</option><option value="m" ${p.g=='m'?'selected':''}>Masculino</option></select>Padres / madres<div style="margin-bottom:10px">${cb('pa',p.parents)}</div>Parejas<div style="margin-bottom:12px">${cb('pt',p.partners)}</div><button class="p" onclick="sv('${id||''}')">Guardar</button> <button onclick="hide()">Cancelar</button>`)}
@@ -107,7 +136,7 @@ $('ci').oninput=e=>e.target.value=e.target.value.toUpperCase().replace(/[^A-Z]/g
 $('ci').onkeydown=e=>{if(e.key==='Enter')unlock($('ci').value)};
 $('cb').onclick=()=>unlock($('ci').value);
 $('ts').onchange=e=>{if(e.target.value)goTree(e.target.value)};
-function persist(){if(user)db.collection('users').doc(user.uid).set({codes:CODES}).catch(()=>{})}
+function persist(){if(user)db.collection('users').doc(user.uid).set({codes:CODES},{merge:true}).catch(()=>{})}
 async function nameOf(c){if(NAMES[c])return NAMES[c];try{const s=await db.collection('trees').doc(c).get();if(s.exists)return NAMES[c]=s.data().name||c}catch(e){}return null}
 async function unlock(c){c=c.trim().toUpperCase();if(!/^[A-Z]{5}$/.test(c))return alert('El código tiene 5 letras');
  if(!(await nameOf(c)))return alert('Código incorrecto');
@@ -116,40 +145,43 @@ async function unlock(c){c=c.trim().toUpperCase();if(!/^[A-Z]{5}$/.test(c))retur
 async function refreshTrees(){let list=[];
  if(admin){try{(await db.collection('trees').get()).forEach(d=>{NAMES[d.id]=d.data().name||d.id;list.push(d.id)})}catch(e){}}
  else{for(const c of CODES)if(await nameOf(c))list.push(c);
-  if(user){try{(await db.collection('trees').where('editors','array-contains',user.uid).get()).forEach(d=>{NAMES[d.id]=d.data().name||d.id;if(!list.includes(d.id))list.push(d.id)})}catch(e){}}}
+  if(user){try{(await db.collection('trees').where('owner','==',user.uid).get()).forEach(d=>{NAMES[d.id]=d.data().name||d.id;if(!list.includes(d.id))list.push(d.id)})}catch(e){}
+   try{(await db.collection('trees').where('editors','array-contains',user.uid).get()).forEach(d=>{NAMES[d.id]=d.data().name||d.id;if(!list.includes(d.id))list.push(d.id)})}catch(e){}}}
  const s=$('ts');s.style.display=list.length?'':'none';
  s.innerHTML=(TREE?'':'<option value="">Elige árbol…</option>')+list.map(c=>`<option value="${c}" ${c===TREE?'selected':''}>${esc(NAMES[c])}${admin?' ('+c+')':''}</option>`).join('')}
 function goTree(c){TREE=c;sel=null;$('ts').value=c;listen()}
 function listen(){if(unsub){unsub();unsub=null}
- if(!TREE){P=[];TN='';ED=[];EN={};updateUI();$('cc').textContent='';$('sheet').classList.remove('o');render();return}
+ if(!TREE){P=[];TN='';ED=[];EN={};OWN='';updateUI();$('cc').textContent='';$('sheet').classList.remove('o');render();return}
  $('cc').textContent='Código: '+TREE;
  unsub=db.collection('trees').doc(TREE).onSnapshot(s=>{
-  if(!s.exists){P=[];TN=TREE;ED=[];EN={}}else{const d=s.data();P=d.people||[];TN=d.name||TREE;ED=d.editors||[];EN=d.editorNames||{}}updateUI();
+  if(!s.exists){P=[];TN=TREE;ED=[];EN={};OWN=''}else{const d=s.data();P=d.people||[];TN=d.name||TREE;ED=d.editors||[];EN=d.editorNames||{};OWN=d.owner||''}updateUI();
   document.title=TN+' · Árbol genealógico';if(sel&&!by(sel))sel=null;
   sel?pick(sel):($('sheet').classList.remove('o'),render())},e=>alert('No se pudo leer el árbol: '+e.message))}
 async function genCode(){let c,ex=true;
  while(ex){c=[...crypto.getRandomValues(new Uint8Array(5))].map(b=>String.fromCharCode(65+b%26)).join('');ex=(await db.collection('trees').doc(c).get()).exists}
  return c}
 function copyCode(){if(TREE&&navigator.clipboard)navigator.clipboard.writeText(TREE).then(()=>alert('Código copiado: '+TREE))}
-async function regenCode(){if(!TREE||!confirm('Se generará un código nuevo y el anterior dejará de funcionar. ¿Continuar?'))return;
+async function regenCode(){if(!TREE||!canManage()||!confirm('Se generará un código nuevo y el anterior dejará de funcionar. ¿Continuar?'))return;
  try{const old=TREE,c=await genCode();
-  await db.collection('trees').doc(c).set({name:TN||old,people:P,editors:ED,editorNames:EN});
+  await db.collection('trees').doc(c).set(Object.assign({name:TN||old,people:P,editors:ED,editorNames:EN},OWN?{owner:OWN}:{}));
   await db.collection('trees').doc(old).delete();
   NAMES[c]=TN||old;CODES=CODES.filter(x=>x!==old);persist();goTree(c);refreshTrees();alert('Nuevo código: '+c)}
  catch(e){alert('No se pudo cambiar el código: '+e.message)}}
-async function newTree(){const n=prompt('Nombre del nuevo árbol:');if(!n)return;
+async function newTree(){if(!user)return alert('Inicia sesión para crear un árbol');const n=(prompt('Nombre del nuevo árbol:')||'').trim().slice(0,60);if(!n)return;
  try{const c=await genCode();
-  await db.collection('trees').doc(c).set({name:n,people:[],editors:[],editorNames:{}});NAMES[c]=n;await refreshTrees();goTree(c);alert('Árbol creado. Código para compartir: '+c)}
+  await db.collection('trees').doc(c).set({name:n,people:[],editors:[],editorNames:{},owner:user.uid});NAMES[c]=n;await refreshTrees();goTree(c);alert('Árbol creado. Código para compartir: '+c)}
  catch(e){alert('No se pudo crear: '+e.message)}}
 const cfg=window.FIREBASE_CONFIG;
 if(!cfg||String(cfg.apiKey).startsWith('TU_')){$('tree').innerHTML='<p class="em">Falta configurar Firebase: rellena <b>firebase-config.js</b> (mira el README).</p>'}
 else{firebase.initializeApp(cfg);db=firebase.firestore();auth=firebase.auth();
- auth.onAuthStateChanged(async u=>{user=u;let a=false;
-  if(u&&(u.email||'').endsWith('@arbol.local'))db.collection('usernames').doc(u.email.split('@')[0]).set({uid:u.uid}).catch(()=>{});
+ auth.onAuthStateChanged(async u=>{user=u;let a=false;UN='';
+  const fake=u&&(u.email||'').endsWith('@arbol.local');
+  if(fake){UN=u.email.split('@')[0];db.collection('usernames').doc(UN).set({uid:u.uid}).catch(()=>{})}
   if(u){a=await isAdmin(u);
-   try{const s=await db.collection('users').doc(u.uid).get();CODES=[...new Set([...(s.exists?s.data().codes||[]:[]),...CODES])];persist()}catch(e){}}
+   try{const s=await db.collection('users').doc(u.uid).get();if(s.exists&&!fake)UN=s.data().username||'';CODES=[...new Set([...(s.exists?s.data().codes||[]:[]),...CODES])];persist()}catch(e){}}
   else{CODES=[];TREE=null;listen()}
-  setAdmin(a);refreshTrees()})}
+  setAdmin(a);refreshTrees();
+  if(u&&!UN&&!ASKED.has(u.uid)){ASKED.add(u.uid);setTimeout(profile,400)}})}
 
 // ---- Arrastrar para reordenar (solo admin) ----
 function clk(id){if(Date.now()-SUP>300)pick(id)}
@@ -166,7 +198,7 @@ addEventListener('pointerup',()=>{if(!DR)return;const d=DR;DR=null;if(!d.moved)r
  let k=0;order.forEach(u=>u.ids.forEach(i=>by(i).ord=k++));save();render()});
 addEventListener('pointercancel',()=>{if(DR){DR=null;render()}});
 
-async function delTree(){if(!TREE)return;
+async function delTree(){if(!TREE||!canManage())return;
  const n=prompt(`Esto borra el árbol "${TN||TREE}" para siempre. Para confirmar, escribe su código (${TREE}):`);
  if(n===null)return;if(n.trim().toUpperCase()!==TREE)return alert('El código no coincide. No se ha borrado nada.');
  try{const old=TREE;await db.collection('trees').doc(old).delete();
@@ -176,7 +208,7 @@ async function delTree(){if(!TREE)return;
 addEventListener('resize',()=>{clearTimeout(RT);RT=setTimeout(()=>{if(innerWidth!==LASTW)render()},150)});
 
 // ---- Editores (solo admin) ----
-function editorsModal(){if(!TREE)return;
+function editorsModal(){if(!TREE||!canManage())return;
  const rows=ED.map(u=>`<div class="r">${esc(EN[u]||u)} <button class="d" style="float:right;padding:3px 8px" onclick="rmEditor('${u}')">Quitar</button></div>`).join('')||'<small>Nadie más puede editar este árbol.</small>';
  modal(`<h3 style="margin-top:0">Editores de «${esc(TN)}»</h3><small>Pueden añadir, editar y quitar miembros. No pueden borrar el árbol ni cambiar los editores. Deben tener ya una cuenta creada.</small><div style="margin:10px 0">${rows}</div><input id="en" placeholder="Nombre de usuario" autocapitalize="none"><div class="err" id="er"></div><button class="p" onclick="addEditor()">Añadir editor</button> <button onclick="hide()">Cerrar</button>`)}
 async function addEditor(){const n=$('en').value.trim().toLowerCase();if(!n)return;
@@ -186,4 +218,4 @@ async function addEditor(){const n=$('en').value.trim().toLowerCase();if(!n)retu
   const u=s.data().uid;if(ED.includes(u))return $('er').textContent='Ya es editor';
   await db.collection('trees').doc(TREE).update({editors:firebase.firestore.FieldValue.arrayUnion(u),['editorNames.'+u]:n});editorsModal()}
  catch(e){$('er').textContent='Error: '+(e.code||e.message)}}
-async function rmEditor(u){try{await db.collection('trees').doc(TREE).update({editors:firebase.firestore.FieldValue.arrayRemove(u),['editorNames.'+u]:firebase.firestore.FieldValue.delete()});editorsModal()}catch(e){alert('Error: '+(e.code||e.message))}}
+async function rmEditor(u){if(!confirm('¿Quitar a '+(EN[u]||'este editor')+'? Ya no podrá modificar este árbol.'))return;try{await db.collection('trees').doc(TREE).update({editors:firebase.firestore.FieldValue.arrayRemove(u),['editorNames.'+u]:firebase.firestore.FieldValue.delete()});editorsModal()}catch(e){alert('Error: '+(e.code||e.message))}}

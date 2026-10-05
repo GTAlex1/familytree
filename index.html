@@ -8,13 +8,13 @@
 <link rel="stylesheet" href="style.css?v=__VERSION__">
 </head>
 <body>
-<header><div id="cf"><input id="ci" maxlength="5" placeholder="CÓDIGO" autocomplete="off" autocapitalize="characters" spellcheck="false"><button id="cb">→</button></div><h1>🌳<span class="t"> Árbol genealógico</span></h1><select id="ts" style="display:none"></select><button id="lb">Login</button></header>
-<div id="tools"><span id="cc"></span><small style="align-self:center;color:var(--mut)">↔ Arrastra un nombre para reordenar</small><button onclick="copyCode()">Copiar código</button><button class="ao" onclick="regenCode()">Nuevo código</button><button class="ao" onclick="editorsModal()">Editores</button>
-<button class="p" onclick="edit()">+ Añadir persona</button>
-<button class="ao" onclick="newTree()">+ Nuevo árbol</button>
-<button onclick="expo()">Exportar</button>
-<button onclick="document.getElementById('imp').click()">Importar</button>
-<button class="d ao" onclick="delTree()">Eliminar árbol</button>
+<header><div id="cf"><input id="ci" maxlength="5" placeholder="CÓDIGO" autocomplete="off" autocapitalize="characters" spellcheck="false"><button id="cb">→</button></div><h1>🌳<span class="t"> Árbol genealógico</span></h1><select id="ts" style="display:none"></select><button id="pb" style="display:none" title="Perfil">👤<span class="pn"></span></button><button id="lb">Login</button></header>
+<div id="tools"><span id="cc"></span><small class="eo" style="align-self:center;color:var(--mut)">↔ Arrastra un nombre para reordenar</small><button class="eo sec" onclick="copyCode()">Copiar código</button><button class="mo sec" onclick="regenCode()">Nuevo código</button><button class="mo sec" onclick="editorsModal()">Editores</button>
+<button class="p eo" onclick="edit()">+ Añadir persona</button>
+<button class="uo" onclick="newTree()">+ Nuevo árbol</button><button id="tm" onclick="this.parentNode.classList.toggle('open')" aria-label="Más opciones">⋯ Más</button>
+<button class="eo sec" onclick="expo()">Exportar</button>
+<button class="eo sec" onclick="document.getElementById('imp').click()">Importar</button>
+<button class="d mo sec" onclick="delTree()">Eliminar árbol</button>
 <input type="file" id="imp" accept=".json" hidden></div>
 <div id="wrap"><div id="tree"></div></div>
 <div id="sheet"></div>

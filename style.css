@@ -76,5 +76,38 @@ h1{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
  #modal .b{padding:14px}
 }
 
-.ao{display:none}
-body.isadmin .ao{display:inline-block}
+.eo,.mo,.uo{display:none}
+body.ed .eo,body.mg .mo,body.us .uo{display:revert}
+
+/* Perfil */
+#pb{max-width:34vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#pb .pn{margin-left:6px}
+#pb.warn{border-color:#d68a00}
+#pb.warn::after{content:" ●";color:#d68a00}
+@media(max-width:600px){#pb .pn{display:none}}
+.pf small{color:var(--mut);display:block;margin-bottom:6px}
+.pf .ok{color:#2e8b57;font-size:13px;min-height:16px}
+.pf .tag{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--rel);font-size:12px;margin-bottom:10px}
+.pf input[disabled]{opacity:.6}
+.gbtn{width:100%;margin:0 0 8px}
+.sep{text-align:center;color:var(--mut);font-size:12px;margin:6px 0}
+
+
+/* ---- Móvil: cabecera en 2 filas y barra de herramientas compacta ---- */
+#tm{display:none}
+@media (max-width:600px){
+ header{flex-wrap:wrap;row-gap:8px}
+ header h1{display:none}
+ #cf{order:1;flex:1;min-width:0}
+ #ci{flex:1;width:auto;min-width:0}
+ #cb{flex:none}
+ #pb{order:2;flex:none;max-width:none;padding:7px 10px}
+ #lb{order:3;flex:none}
+ #ts{order:4;flex:1 1 100%;width:100%;max-width:100%}
+ #tools{flex-wrap:wrap;overflow:visible;gap:6px;row-gap:6px}
+ #tools>*{flex:none}
+ #tools button{padding:6px 10px;font-size:13px}
+ #cc{flex:1 1 100%;margin:0;font-size:14px}
+ #tm{display:inline-block}
+ #tools:not(.open) .sec{display:none!important}
+}
