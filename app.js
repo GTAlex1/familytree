@@ -72,7 +72,7 @@ async function register(){const u=$('u').value.trim();
  if($('pw').value.length<6)return $('er').textContent='La contraseña necesita al menos 6 caracteres';
  try{await auth.createUserWithEmailAndPassword(uname(),$('pw').value);hide()}
  catch(e){console.error(e);$('er').textContent=e.code==='auth/email-already-in-use'?'Ese usuario ya existe':'Error: '+(e.code||e.message)}}
-async function isAdmin(u){try{return(await db.collection('admins').doc(u.uid).get()).exists}catch(e){return false}}
+async function isAdmin(u){return u.uid===window.ADMIN_UID}
 function setAdmin(v){admin=v;$('lb').textContent=user?'Salir':'Login';$('tools').style.display=v?'flex':'none';sel?pick(sel):render()}
 function edit(id){if(!TREE)return alert('Primero abre o crea un árbol');const p=id?by(id):{name:'',g:'f',parents:[],partners:[]},o=P.filter(x=>x.id!==id);
  const cb=(n,l)=>o.map(x=>`<label class="c"><input type="checkbox" name="${n}" value="${x.id}" ${l.includes(x.id)?'checked':''}>${esc(x.name)}</label>`).join('')||'<small>—</small>';
@@ -110,8 +110,18 @@ function listen(){if(unsub){unsub();unsub=null}
   if(!s.exists){P=[];TN=TREE}else{P=s.data().people||[];TN=s.data().name||TREE}
   document.title=TN+' · Árbol genealógico';if(sel&&!by(sel))sel=null;
   sel?pick(sel):($('sheet').classList.remove('o'),render())},e=>alert('No se pudo leer el árbol: '+e.message))}
+async function genCode(){let c,ex=true;
+ while(ex){c=[...crypto.getRandomValues(new Uint8Array(5))].map(b=>String.fromCharCode(65+b%26)).join('');ex=(await db.collection('trees').doc(c).get()).exists}
+ return c}
+function copyCode(){if(TREE&&navigator.clipboard)navigator.clipboard.writeText(TREE).then(()=>alert('Código copiado: '+TREE))}
+async function regenCode(){if(!TREE||!confirm('Se generará un código nuevo y el anterior dejará de funcionar. ¿Continuar?'))return;
+ try{const old=TREE,c=await genCode();
+  await db.collection('trees').doc(c).set({name:TN||old,people:P});
+  await db.collection('trees').doc(old).delete();
+  NAMES[c]=TN||old;CODES=CODES.filter(x=>x!==old);persist();goTree(c);refreshTrees();alert('Nuevo código: '+c)}
+ catch(e){alert('No se pudo cambiar el código: '+e.message)}}
 async function newTree(){const n=prompt('Nombre del nuevo árbol:');if(!n)return;
- try{let c,ex=true;while(ex){c=[...crypto.getRandomValues(new Uint8Array(5))].map(b=>String.fromCharCode(65+b%26)).join('');ex=(await db.collection('trees').doc(c).get()).exists}
+ try{const c=await genCode();
   await db.collection('trees').doc(c).set({name:n,people:[]});NAMES[c]=n;await refreshTrees();goTree(c);alert('Árbol creado. Código para compartir: '+c)}
  catch(e){alert('No se pudo crear: '+e.message)}}
 const cfg=window.FIREBASE_CONFIG;
