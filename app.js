@@ -1,17 +1,3 @@
-const DEF=[
-['col','Columbina','f',[],[]],
-['tar','Tartaglia','m',['col'],[]],
-['aet','Aether','m',['col'],['xia']],
-['xia','Lynn','m',[],['aet']],
-['dur','Durin','f',[],[]],
-['mik','Yae Miko','f',[],[]],
-['sus','Kazuha','m',['aet','xia'],[]],
-['hya','Hyacine','f',['aet','xia','dur'],['cip']],
-['cip','Cipher','f',['mik'],['hya']],
-['kav','Kaveh','m',['hya','cip'],['alh']],
-['met','Meta AI','m',['hya','cip'],[]],
-['alh','Alhaitham','m',[],['kav']]
-].map(a=>({id:a[0],name:a[1],g:a[2],parents:a[3],partners:a[4]}));
 let P=[],admin=false,sel=null,TREE=null,TN='',unsub=null,db,auth,user=null,CODES=[],NAMES={},ED=[],EN={};
 const canEdit=()=>admin||(user&&ED.includes(user.uid));
 const clone=o=>JSON.parse(JSON.stringify(o));
@@ -114,7 +100,6 @@ function sv(id){const nm=$('nm').value.trim();if(!nm)return;const chk=n=>[...doc
  P.forEach(x=>{if(x.id!==p.id){x.partners=x.partners.filter(i=>i!==p.id);if(p.partners.includes(x.id))x.partners.push(p.id)}});
  save();hide();render();sel&&pick(sel)}
 function del(id){if(!confirm('¿Eliminar a '+by(id).name+'?'))return;P=P.filter(p=>p.id!==id);P.forEach(p=>{p.parents=p.parents.filter(i=>i!==id);p.partners=p.partners.filter(i=>i!==id)});save();closeS()}
-function reset(){if(confirm('¿Cargar los datos iniciales en este árbol? Se sobrescribe lo actual.')){P=clone(DEF);save()}}
 function expo(){modal(`<h3 style="margin-top:0">Exportar</h3><small>Copia este texto para guardar tu árbol.</small><textarea id="ex" style="width:100%;height:200px;margin:8px 0">${esc(JSON.stringify(P))}</textarea><button onclick="hide()">Cerrar</button>`);$('ex').select()}
 $('imp').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);if(!Array.isArray(d))throw 0;P=d;save();closeS()}catch(x){alert('Archivo inválido')}})};
 

@@ -17,7 +17,7 @@ HTML + CSS + JS estático con Firebase (Auth + Firestore). Varios árboles, cada
 6. Authentication → Configuración → Dominios autorizados: añade `TU_USUARIO.github.io`.
 7. Abre la página y **crea tu cuenta de admin** (Login → usuario `Kazus_01` + contraseña → Crear cuenta). Hazlo antes de compartir la web.
 8. El UID de esa cuenta (Authentication → Usuarios) se pone en `firestore.rules` (función `isAdmin`) y en `firebase-config.js` (`ADMIN_UID`).
-9. Recarga, entra como admin: **+ Nuevo árbol**, abre el árbol y pulsa **Datos iniciales** para cargar la familia de ejemplo.
+9. Recarga, entra como admin: **+ Nuevo árbol** y empieza a añadir personas.
 
 ## Seguridad
 El código es el ID del documento y las reglas no permiten listar árboles, así que hace falta conocerlo. Hay 26^5 ≈ 11,8 millones de combinaciones; es suficiente para uso familiar, pero no es secreto de nivel bancario. Para endurecerlo, activa Firebase App Check.
