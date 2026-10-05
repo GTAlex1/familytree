@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    // El ID del documento ES el código de 5 letras.
+    // Solo se puede leer un árbol concreto si conoces su código; listar todos es solo para admins.
+    match /trees/{code} {
+      allow get: if code.matches('[A-Z]{5}');
+      allow list: if isAdmin();
+      allow write: if isAdmin() && code.matches('[A-Z]{5}');
+    }
+    // Códigos guardados de cada usuario
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['codes'])
+        && request.resource.data.codes.size() <= 50;
+    }
+    match /admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+  }
+}
