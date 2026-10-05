@@ -2,7 +2,7 @@ const DEF=[
 ['col','Columbina','f',[],[]],
 ['tar','Tartaglia','m',['col'],[]],
 ['aet','Aether','m',['col'],['xia']],
-['xia','Xiao','m',[],['aet']],
+['xia','Lynn','m',[],['aet']],
 ['dur','Durin','f',[],[]],
 ['mik','Yae Miko','f',[],[]],
 ['sus','Kazuha','m',['aet','xia'],[]],
@@ -37,20 +37,42 @@ function relations(id){const me=by(id),out=[];
   if(!t)for(const tid of q.partners){const tt=by(tid),r2=tt&&rel(id,tid);if(r2){t=`${label(r2,me.g)} de ${tt.name}, pareja de ${q.name} (parentesco político)`;break}}
   out.push({q,t:t||'Sin parentesco registrado',k:99,s:2,raw:!!t})});
  return out.sort((a,b)=>a.s-b.s||a.k-b.k)}
-function gens(){const g={};P.forEach(p=>g[p.id]=0);for(let i=0;i<30;i++)P.forEach(p=>{p.parents.forEach(x=>{if(g[x]!==undefined&&g[p.id]<g[x]+1)g[p.id]=g[x]+1});p.partners.forEach(x=>{if(g[x]!==undefined&&g[p.id]<g[x])g[p.id]=g[x]})});return g}
-function render(){if(!TREE||!P.length){$('tree').innerHTML='<p class="em">'+(!TREE?'Introduce un código de 5 letras arriba a la izquierda para ver un árbol.':'Este árbol está vacío.'+(admin?' Añade personas con el botón de arriba.':''))+'</p>';return}
- const g=gens(),max=Math.max(0,...Object.values(g)),t=$('tree');t.innerHTML='<svg id="sv"></svg>';
- const R=sel?new Set(relations(sel).filter(x=>x.s<2).map(x=>x.q.id)):new Set();
- for(let i=0;i<=max;i++){const row=document.createElement('div');row.className='row';
-  P.filter(p=>g[p.id]===i).forEach(p=>{const d=document.createElement('div');d.className='n'+(p.id===sel?' sel':R.has(p.id)?' rel':'');d.id='n_'+p.id;d.textContent=p.name;d.onclick=()=>pick(p.id);row.appendChild(d)});
-  if(row.children.length)t.appendChild(row)}
- requestAnimationFrame(lines)}
-function lines(){const t=$('tree'),sv=$('sv');if(!sv)return;const tr=t.getBoundingClientRect();sv.setAttribute('width',tr.width);sv.setAttribute('height',tr.height);let h='';
- const pt=(id,top)=>{const e=$('n_'+id);if(!e)return null;const r=e.getBoundingClientRect();return[r.left-tr.left+r.width/2,(top?r.top:r.bottom)-tr.top]};
- P.forEach(c=>c.parents.forEach(pid=>{const a=pt(pid,false),b=pt(c.id,true);if(a&&b){const m=(a[1]+b[1])/2;h+=`<path d="M${a[0]} ${a[1]} C${a[0]} ${m},${b[0]} ${m},${b[0]} ${b[1]}" fill="none" stroke="var(--ln)" stroke-width="1.5"/>`}}));
- P.forEach(p=>p.partners.forEach(q=>{if(p.id<q){const e1=$('n_'+p.id),e2=$('n_'+q);if(!e1||!e2)return;const a=e1.getBoundingClientRect(),b=e2.getBoundingClientRect();if(Math.abs(a.top-b.top)<5){const l=a.left<b.left?a:b,r=a.left<b.left?b:a,y=a.top-tr.top+a.height/2;h+=`<line x1="${l.right-tr.left}" y1="${y}" x2="${r.left-tr.left}" y2="${y}" stroke="var(--ac)" stroke-width="2" stroke-dasharray="4 3"/>`}}}));
- sv.innerHTML=h}
-addEventListener('resize',lines);
+function gens(){const g={};P.forEach(p=>g[p.id]=0);
+ for(let i=0;i<40;i++)P.forEach(p=>{
+  p.parents.forEach(x=>{if(g[x]!==undefined&&g[p.id]<g[x]+1)g[p.id]=g[x]+1});
+  p.partners.forEach(x=>{if(g[x]!==undefined&&g[p.id]<g[x])g[p.id]=g[x]});
+  if(!p.parents.length){const k=P.filter(c=>c.parents.includes(p.id));if(k.length){const m=Math.min(...k.map(c=>g[c.id]))-1;if(g[p.id]<m)g[p.id]=m}}});
+ return g}
+const W=136,H=54,PX=176,RH=124,LM=96,ROM=['I','II','III','IV','V','VI','VII','VIII','IX','X'];
+function layout(g,max){const rows=[],X={};
+ for(let i=0;i<=max;i++){const ids=P.filter(p=>g[p.id]===i).map(p=>p.id),seen=new Set(),units=[];
+  ids.forEach(id=>{if(seen.has(id))return;const u=[],st=[id];
+   while(st.length){const x=st.pop();if(seen.has(x))continue;seen.add(x);u.push(x);by(x).partners.forEach(q=>{if(ids.includes(q)&&!seen.has(q))st.push(q)})}
+   units.push({ids:u.sort((a,b)=>ids.indexOf(a)-ids.indexOf(b)),c:0,d:0})});
+  rows.push(units)}
+ const avg=a=>a.reduce((s,v)=>s+v,0)/a.length;
+ const place=us=>{let prev=null;us.forEach(u=>{const h=u.ids.length*PX/2,min=prev===null?-Infinity:prev+h;
+  u.c=isFinite(u.c)?Math.max(u.c,min):(prev===null?h:min);prev=u.c+h;
+  u.ids.forEach((id,k)=>X[id]=u.c+(k-(u.ids.length-1)/2)*PX)})};
+ rows.forEach(us=>{us.forEach(u=>{const d=u.ids.flatMap(id=>by(id).parents.filter(p=>p in X).map(p=>X[p]));u.d=d.length?avg(d):Infinity});
+  us.sort((a,b)=>a.d===b.d?0:a.d<b.d?-1:1);us.forEach(u=>u.c=isFinite(u.d)?u.d:-Infinity);place(us)});
+ for(let i=max-1;i>=0;i--){rows[i].forEach(u=>{const d=u.ids.flatMap(id=>P.filter(c=>c.parents.includes(id)).map(c=>X[c.id]));if(d.length)u.c=avg(d)});place(rows[i])}
+ return X}
+function render(){const t=$('tree');
+ if(!TREE||!P.length){t.style.width=t.style.height='';t.innerHTML='<p class="em">'+(!TREE?'Introduce un código de 5 letras arriba a la izquierda para ver un árbol.':'Este árbol está vacío.'+(admin?' Añade personas con el botón de arriba.':''))+'</p>';return}
+ const g=gens(),max=Math.max(0,...Object.values(g)),X=layout(g,max),xs=P.map(p=>X[p.id]);
+ const sh=LM+W/2+10-Math.min(...xs),wd=Math.max(...xs)+sh+W/2+30,ht=(max+1)*RH+20,RY=i=>10+i*RH+H/2;
+ const nb=new Set(sel&&by(sel)?[sel,...by(sel).parents,...by(sel).partners,...P.filter(c=>c.parents.includes(sel)).map(c=>c.id)]:[]);
+ let gl='',es='',ns='';
+ for(let i=0;i<=max;i++)gl+=`<div class="gl" style="top:${RY(i)}px"><span>GEN ${ROM[i]||i+1}</span></div>`;
+ P.forEach(c=>c.parents.forEach(a=>{if(!by(a))return;const x1=X[a]+sh,y1=RY(g[a])+H/2,x2=X[c.id]+sh,y2=RY(g[c.id])-H/2,b=y2-(RH-H)/2;
+  es+=`<path class="e${sel?(a===sel||c.id===sel?'':' dim'):''}" d="M${x1} ${y1}V${b}H${x2}V${y2}" marker-end="url(#ar)"/>`}));
+ P.forEach(p=>p.partners.forEach(q=>{if(p.id<q&&by(q)&&g[p.id]===g[q]){const l=X[p.id]<X[q]?p.id:q,r=l===p.id?q:p.id,y=RY(g[p.id]);
+  es+=`<line class="e pt${sel?(p.id===sel||q===sel?'':' dim'):''}" x1="${X[l]+sh+W/2}" y1="${y}" x2="${X[r]+sh-W/2}" y2="${y}"/>`}}));
+ P.forEach(p=>{const c=p.id===sel?' sel':sel&&!nb.has(p.id)?' dim':'';
+  ns+=`<div class="n${c}" style="left:${X[p.id]+sh-W/2}px;top:${RY(g[p.id])-H/2}px" onclick="pick('${p.id}')"><b>${esc(p.name)}</b><i>GEN ${g[p.id]+1}</i></div>`});
+ t.style.width=wd+'px';t.style.height=ht+'px';
+ t.innerHTML=gl+`<svg width="${wd}" height="${ht}"><defs><marker id="ar" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--hl)"/></marker></defs>${es}</svg>`+ns}
 function pick(id){sel=id;const me=by(id),rs=relations(id);
  let h=`<div style="display:flex;justify-content:space-between;align-items:center"><h2>${esc(me.name)}</h2><button onclick="closeS()">✕</button></div>`;
  if(admin)h+=`<div style="margin-bottom:8px"><button onclick="edit('${id}')">Editar</button> <button class="d" onclick="del('${id}')">Eliminar</button></div>`;
