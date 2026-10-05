@@ -172,3 +172,10 @@ addEventListener('pointerup',()=>{if(!DR)return;const d=DR;DR=null;if(!d.moved)r
   idx=others.filter(x=>x.c<dropC).length,order=[...others.slice(0,idx),d.u,...others.slice(idx)];
  let k=0;order.forEach(u=>u.ids.forEach(i=>by(i).ord=k++));save();render()});
 addEventListener('pointercancel',()=>{if(DR){DR=null;render()}});
+
+async function delTree(){if(!TREE)return;
+ const n=prompt(`Esto borra el árbol "${TN||TREE}" para siempre. Para confirmar, escribe su código (${TREE}):`);
+ if(n===null)return;if(n.trim().toUpperCase()!==TREE)return alert('El código no coincide. No se ha borrado nada.');
+ try{const old=TREE;await db.collection('trees').doc(old).delete();
+  CODES=CODES.filter(x=>x!==old);delete NAMES[old];persist();TREE=null;sel=null;listen();refreshTrees()}
+ catch(e){alert('No se pudo borrar: '+e.message)}}
