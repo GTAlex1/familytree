@@ -1,10 +1,9 @@
-// Pega aquí la config de tu app web de Firebase
-// (Configuración del proyecto → Tus apps → Web). Estos datos son públicos, no pasa nada por subirlos.
+// Configuración de Firebase (es pública; la seguridad la dan las reglas de Firestore)
 window.FIREBASE_CONFIG = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_PROYECTO.firebaseapp.com",
-  projectId: "TU_PROYECTO",
-  storageBucket: "TU_PROYECTO.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "TU_APP_ID"
+  apiKey: "AIzaSyCfMqHjVimpSu6uFCH9H_BR-qzWHRBM0kM",
+  authDomain: "familytree-55e35.firebaseapp.com",
+  projectId: "familytree-55e35",
+  storageBucket: "familytree-55e35.firebasestorage.app",
+  messagingSenderId: "286477323322",
+  appId: "1:286477323322:web:284a6a53e372be0cb17903"
 };
