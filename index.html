@@ -9,13 +9,13 @@
 </head>
 <body>
 <header><div id="cf"><input id="ci" maxlength="5" placeholder="CÓDIGO" autocomplete="off" autocapitalize="characters" spellcheck="false"><button id="cb">→</button></div><h1>🌳<span class="t"> Árbol genealógico</span></h1><select id="ts" style="display:none"></select><button id="lb">Login</button></header>
-<div id="tools"><span id="cc"></span><small style="align-self:center;color:var(--mut)">↔ Arrastra un nombre para reordenar</small><button onclick="copyCode()">Copiar código</button><button onclick="regenCode()">Nuevo código</button>
+<div id="tools"><span id="cc"></span><small style="align-self:center;color:var(--mut)">↔ Arrastra un nombre para reordenar</small><button onclick="copyCode()">Copiar código</button><button class="ao" onclick="regenCode()">Nuevo código</button><button class="ao" onclick="editorsModal()">Editores</button>
 <button class="p" onclick="edit()">+ Añadir persona</button>
-<button onclick="newTree()">+ Nuevo árbol</button>
+<button class="ao" onclick="newTree()">+ Nuevo árbol</button>
 <button onclick="expo()">Exportar</button>
 <button onclick="document.getElementById('imp').click()">Importar</button>
-<button class="d" onclick="delTree()">Eliminar árbol</button>
-<button class="d" onclick="reset()">Datos iniciales</button>
+<button class="d ao" onclick="delTree()">Eliminar árbol</button>
+<button class="d ao" onclick="reset()">Datos iniciales</button>
 <input type="file" id="imp" accept=".json" hidden></div>
 <div id="wrap"><div id="tree"></div></div>
 <div id="sheet"></div>

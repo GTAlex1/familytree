@@ -57,3 +57,24 @@ h1{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
  #wrap{padding-bottom:40px;transition:padding-right .25s}
  body:has(#sheet.o) #wrap{padding-right:400px}
 }
+
+/* Móvil */
+@media (max-width:600px){
+ header{gap:6px;padding:8px 10px}
+ #ci{width:80px}
+ header select{max-width:42vw}
+ header button{padding:7px 10px}
+ #tools{flex-wrap:nowrap;overflow-x:auto;padding:8px 10px;-webkit-overflow-scrolling:touch}
+ #tools>*{flex:none;white-space:nowrap}
+ #tools small{display:none}
+ #wrap{padding:12px 6px 300px}
+ .n{padding:0 8px;border-width:1.5px}
+ .n b{font-size:13px}
+ .n i{font-size:10px}
+ .gl span{font-size:10px;left:2px;padding-right:4px}
+ #sheet{max-height:52vh}
+ #modal .b{padding:14px}
+}
+
+.ao{display:none}
+body.isadmin .ao{display:inline-block}

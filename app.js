@@ -12,9 +12,10 @@ const DEF=[
 ['met','Meta AI','m',['hya','cip'],[]],
 ['alh','Alhaitham','m',[],['kav']]
 ].map(a=>({id:a[0],name:a[1],g:a[2],parents:a[3],partners:a[4]}));
-let P=[],admin=false,sel=null,TREE=null,TN='',unsub=null,db,auth,user=null,CODES=[],NAMES={};
+let P=[],admin=false,sel=null,TREE=null,TN='',unsub=null,db,auth,user=null,CODES=[],NAMES={},ED=[],EN={};
+const canEdit=()=>admin||(user&&ED.includes(user.uid));
 const clone=o=>JSON.parse(JSON.stringify(o));
-function save(){if(!TREE||!admin)return;db.collection('trees').doc(TREE).set({name:TN||TREE,people:P}).catch(e=>alert('No se pudo guardar: '+e.message))}
+function save(){if(!TREE||!canEdit())return;db.collection('trees').doc(TREE).update({people:P}).catch(e=>alert('No se pudo guardar: '+e.message))}
 const $=id=>document.getElementById(id),by=id=>P.find(p=>p.id===id);
 const G=(g,m,f)=>g==='f'?f:m;
 function anc(id){const d={[id]:0};let q=[id];while(q.length){const n=[];q.forEach(x=>(by(x)?.parents||[]).forEach(p=>{if(!(p in d)){d[p]=d[x]+1;n.push(p)}}));q=n}return d}
@@ -44,7 +45,8 @@ function gens(){const g={};P.forEach(p=>g[p.id]=0);
   if(!p.parents.length){const k=P.filter(c=>c.parents.includes(p.id));if(k.length){const m=Math.min(...k.map(c=>g[c.id]))-1;if(g[p.id]<m)g[p.id]=m}}});
  return g}
 let LAY=null,DR=null,SUP=0;
-const W=136,H=54,PX=176,RH=124,LM=96,ROM=['I','II','III','IV','V','VI','VII','VIII','IX','X'];
+let W=136,H=54,PX=176,RH=124,LM=96,SC=1,LASTW=0,RT;
+const ROM=['I','II','III','IV','V','VI','VII','VIII','IX','X'];
 function layout(g,max){const rows=[],X={};
  for(let i=0;i<=max;i++){const ids=P.filter(p=>g[p.id]===i).map(p=>p.id),seen=new Set(),units=[];
   ids.forEach(id=>{if(seen.has(id))return;const u=[],st=[id];
@@ -61,8 +63,9 @@ function layout(g,max){const rows=[],X={};
  for(let i=max-1;i>=0;i--){rows[i].forEach(u=>{const d=u.ids.flatMap(id=>P.filter(c=>c.parents.includes(id)).map(c=>X[c.id]));if(d.length)u.c=avg(d)});place(rows[i])}
  LAY={rows,g};return X}
 function render(){const t=$('tree');
- if(!TREE||!P.length){t.style.width=t.style.height='';t.innerHTML='<p class="em">'+(!TREE?'Introduce un código de 5 letras arriba a la izquierda para ver un árbol.':'Este árbol está vacío.'+(admin?' Añade personas con el botón de arriba.':''))+'</p>';return}
- t.className=admin?'adm':'';
+ if(!TREE||!P.length){t.style.width=t.style.height='';t.innerHTML='<p class="em">'+(!TREE?'Introduce un código de 5 letras arriba a la izquierda para ver un árbol.':'Este árbol está vacío.'+(canEdit()?' Añade personas con el botón de arriba.':''))+'</p>';return}
+ t.className=canEdit()?'adm':'';
+ const mob=innerWidth<=600;LASTW=innerWidth;[W,H,PX,RH,LM]=mob?[108,48,126,100,62]:[136,54,176,124,96];
  const g=gens(),max=Math.max(0,...Object.values(g)),X=layout(g,max),xs=P.map(p=>X[p.id]);
  const sh=LM+W/2+10-Math.min(...xs),wd=Math.max(...xs)+sh+W/2+30,ht=(max+1)*RH+20,RY=i=>10+i*RH+H/2;
  const nb=new Set(sel&&by(sel)?[sel,...by(sel).parents,...by(sel).partners,...P.filter(c=>c.parents.includes(sel)).map(c=>c.id)]:[]);
@@ -73,12 +76,13 @@ function render(){const t=$('tree');
  P.forEach(p=>p.partners.forEach(q=>{if(p.id<q&&by(q)&&g[p.id]===g[q]){const l=X[p.id]<X[q]?p.id:q,r=l===p.id?q:p.id,y=RY(g[p.id]);
   es+=`<line class="e pt${sel?(p.id===sel||q===sel?'':' dim'):''}" x1="${X[l]+sh+W/2}" y1="${y}" x2="${X[r]+sh-W/2}" y2="${y}"/>`}}));
  P.forEach(p=>{const c=p.id===sel?' sel':sel&&!nb.has(p.id)?' dim':'';
-  ns+=`<div class="n${c}" id="n_${p.id}" style="left:${X[p.id]+sh-W/2}px;top:${RY(g[p.id])-H/2}px" onclick="clk('${p.id}')"><b>${esc(p.name)}</b><i>GEN ${g[p.id]+1}</i></div>`});
+  ns+=`<div class="n${c}" id="n_${p.id}" style="width:${W}px;height:${H}px;left:${X[p.id]+sh-W/2}px;top:${RY(g[p.id])-H/2}px" onclick="clk('${p.id}')"><b>${esc(p.name)}</b><i>GEN ${g[p.id]+1}</i></div>`});
  t.style.width=wd+'px';t.style.height=ht+'px';
+ SC=mob?Math.max(.6,Math.min(1,($('wrap').clientWidth-12)/wd)):1;t.style.zoom=SC;
  t.innerHTML=gl+`<svg width="${wd}" height="${ht}"><defs><marker id="ar" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--hl)"/></marker></defs>${es}</svg>`+ns}
 function pick(id){sel=id;const me=by(id),rs=relations(id);
  let h=`<div style="display:flex;justify-content:space-between;align-items:center"><h2>${esc(me.name)}</h2><button onclick="closeS()">✕</button></div>`;
- if(admin)h+=`<div style="margin-bottom:8px"><button onclick="edit('${id}')">Editar</button> <button class="d" onclick="del('${id}')">Eliminar</button></div>`;
+ if(canEdit())h+=`<div style="margin-bottom:8px"><button onclick="edit('${id}')">Editar</button> <button class="d" onclick="del('${id}')">Eliminar</button></div>`;
  rs.forEach(x=>{h+=x.raw||x.s==2?`<div class="r"><a onclick="pick('${x.q.id}')">${esc(x.q.name)}</a>: <small>${esc(x.t)}</small></div>`:`<div class="r">${x.t} de <a onclick="pick('${x.q.id}')">${esc(x.q.name)}</a></div>`});
  if(!rs.length)h+='<div class="r"><small>No hay más personas.</small></div>';
  $('sheet').innerHTML=h;$('sheet').classList.add('o');$('sheet').scrollTop=0;render()}
@@ -93,12 +97,14 @@ const uname=()=>{const u=$('u').value.trim();return u.includes('@')?u:u.toLowerC
 async function login(){if(!$('u').value.trim()||!$('pw').value)return;
  try{await auth.signInWithEmailAndPassword(uname(),$('pw').value);hide()}catch(e){console.error(e);$('er').textContent=['auth/invalid-credential','auth/wrong-password','auth/user-not-found','auth/invalid-email'].includes(e.code)?'Usuario o contraseña incorrectos':'Error: '+(e.code||e.message)}}
 async function register(){const u=$('u').value.trim();
- if(!u.includes('@')&&!/^[A-Za-z0-9_.-]{3,20}$/.test(u))return $('er').textContent='Usuario: 3-20 caracteres (letras, números, _ . -)';
+ if(!/^[A-Za-z0-9_.-]{3,20}$/.test(u))return $('er').textContent='Usuario: 3-20 caracteres (letras, números, _ . -)';
  if($('pw').value.length<6)return $('er').textContent='La contraseña necesita al menos 6 caracteres';
- try{await auth.createUserWithEmailAndPassword(uname(),$('pw').value);hide()}
+ try{const c=await auth.createUserWithEmailAndPassword(uname(),$('pw').value);
+  await db.collection('usernames').doc(u.toLowerCase()).set({uid:c.user.uid}).catch(()=>{});hide()}
  catch(e){console.error(e);$('er').textContent=e.code==='auth/email-already-in-use'?'Ese usuario ya existe':'Error: '+(e.code||e.message)}}
 async function isAdmin(u){return u.uid===window.ADMIN_UID}
-function setAdmin(v){admin=v;$('lb').textContent=user?'Salir':'Login';$('tools').style.display=v?'flex':'none';sel?pick(sel):render()}
+function setAdmin(v){admin=v;$('lb').textContent=user?'Salir':'Login';updateUI();sel?pick(sel):render()}
+function updateUI(){document.body.classList.toggle('isadmin',admin);$('tools').style.display=canEdit()?'flex':'none'}
 function edit(id){if(!TREE)return alert('Primero abre o crea un árbol');const p=id?by(id):{name:'',g:'f',parents:[],partners:[]},o=P.filter(x=>x.id!==id);
  const cb=(n,l)=>o.map(x=>`<label class="c"><input type="checkbox" name="${n}" value="${x.id}" ${l.includes(x.id)?'checked':''}>${esc(x.name)}</label>`).join('')||'<small>—</small>';
  modal(`<h3 style="margin-top:0">${id?'Editar':'Añadir'} persona</h3>Nombre<input id="nm" value="${esc(p.name)}">Género<select id="gn"><option value="f" ${p.g=='f'?'selected':''}>Femenino</option><option value="m" ${p.g=='m'?'selected':''}>Masculino</option></select>Padres / madres<div style="margin-bottom:10px">${cb('pa',p.parents)}</div>Parejas<div style="margin-bottom:12px">${cb('pt',p.partners)}</div><button class="p" onclick="sv('${id||''}')">Guardar</button> <button onclick="hide()">Cancelar</button>`)}
@@ -124,15 +130,16 @@ async function unlock(c){c=c.trim().toUpperCase();if(!/^[A-Z]{5}$/.test(c))retur
  $('ci').value='';goTree(c);refreshTrees()}
 async function refreshTrees(){let list=[];
  if(admin){try{(await db.collection('trees').get()).forEach(d=>{NAMES[d.id]=d.data().name||d.id;list.push(d.id)})}catch(e){}}
- else for(const c of CODES)if(await nameOf(c))list.push(c);
+ else{for(const c of CODES)if(await nameOf(c))list.push(c);
+  if(user){try{(await db.collection('trees').where('editors','array-contains',user.uid).get()).forEach(d=>{NAMES[d.id]=d.data().name||d.id;if(!list.includes(d.id))list.push(d.id)})}catch(e){}}}
  const s=$('ts');s.style.display=list.length?'':'none';
  s.innerHTML=(TREE?'':'<option value="">Elige árbol…</option>')+list.map(c=>`<option value="${c}" ${c===TREE?'selected':''}>${esc(NAMES[c])}${admin?' ('+c+')':''}</option>`).join('')}
 function goTree(c){TREE=c;sel=null;$('ts').value=c;listen()}
 function listen(){if(unsub){unsub();unsub=null}
- if(!TREE){P=[];TN='';$('cc').textContent='';$('sheet').classList.remove('o');render();return}
+ if(!TREE){P=[];TN='';ED=[];EN={};updateUI();$('cc').textContent='';$('sheet').classList.remove('o');render();return}
  $('cc').textContent='Código: '+TREE;
  unsub=db.collection('trees').doc(TREE).onSnapshot(s=>{
-  if(!s.exists){P=[];TN=TREE}else{P=s.data().people||[];TN=s.data().name||TREE}
+  if(!s.exists){P=[];TN=TREE;ED=[];EN={}}else{const d=s.data();P=d.people||[];TN=d.name||TREE;ED=d.editors||[];EN=d.editorNames||{}}updateUI();
   document.title=TN+' · Árbol genealógico';if(sel&&!by(sel))sel=null;
   sel?pick(sel):($('sheet').classList.remove('o'),render())},e=>alert('No se pudo leer el árbol: '+e.message))}
 async function genCode(){let c,ex=true;
@@ -141,18 +148,19 @@ async function genCode(){let c,ex=true;
 function copyCode(){if(TREE&&navigator.clipboard)navigator.clipboard.writeText(TREE).then(()=>alert('Código copiado: '+TREE))}
 async function regenCode(){if(!TREE||!confirm('Se generará un código nuevo y el anterior dejará de funcionar. ¿Continuar?'))return;
  try{const old=TREE,c=await genCode();
-  await db.collection('trees').doc(c).set({name:TN||old,people:P});
+  await db.collection('trees').doc(c).set({name:TN||old,people:P,editors:ED,editorNames:EN});
   await db.collection('trees').doc(old).delete();
   NAMES[c]=TN||old;CODES=CODES.filter(x=>x!==old);persist();goTree(c);refreshTrees();alert('Nuevo código: '+c)}
  catch(e){alert('No se pudo cambiar el código: '+e.message)}}
 async function newTree(){const n=prompt('Nombre del nuevo árbol:');if(!n)return;
  try{const c=await genCode();
-  await db.collection('trees').doc(c).set({name:n,people:[]});NAMES[c]=n;await refreshTrees();goTree(c);alert('Árbol creado. Código para compartir: '+c)}
+  await db.collection('trees').doc(c).set({name:n,people:[],editors:[],editorNames:{}});NAMES[c]=n;await refreshTrees();goTree(c);alert('Árbol creado. Código para compartir: '+c)}
  catch(e){alert('No se pudo crear: '+e.message)}}
 const cfg=window.FIREBASE_CONFIG;
 if(!cfg||String(cfg.apiKey).startsWith('TU_')){$('tree').innerHTML='<p class="em">Falta configurar Firebase: rellena <b>firebase-config.js</b> (mira el README).</p>'}
 else{firebase.initializeApp(cfg);db=firebase.firestore();auth=firebase.auth();
  auth.onAuthStateChanged(async u=>{user=u;let a=false;
+  if(u&&(u.email||'').endsWith('@arbol.local'))db.collection('usernames').doc(u.email.split('@')[0]).set({uid:u.uid}).catch(()=>{});
   if(u){a=await isAdmin(u);
    try{const s=await db.collection('users').doc(u.uid).get();CODES=[...new Set([...(s.exists?s.data().codes||[]:[]),...CODES])];persist()}catch(e){}}
   else{CODES=[];TREE=null;listen()}
@@ -161,12 +169,12 @@ else{firebase.initializeApp(cfg);db=firebase.firestore();auth=firebase.auth();
 // ---- Arrastrar para reordenar (solo admin) ----
 function clk(id){if(Date.now()-SUP>300)pick(id)}
 $('tree').addEventListener('pointerdown',e=>{
- if(!admin||!LAY||e.button>0)return;const n=e.target.closest('.n');if(!n)return;
+ if(!canEdit()||!LAY||e.button>0)return;const n=e.target.closest('.n');if(!n)return;
  const id=n.id.slice(2),u=(LAY.rows[LAY.g[id]]||[]).find(u=>u.ids.includes(id));if(!u)return;
  DR={id,u,x0:e.clientX,dx:0,moved:false,els:u.ids.map(i=>$('n_'+i))};try{n.setPointerCapture(e.pointerId)}catch(x){}});
 addEventListener('pointermove',e=>{if(!DR)return;const dx=e.clientX-DR.x0;
- if(!DR.moved&&Math.abs(dx)<6)return;DR.moved=true;DR.dx=dx;
- DR.els.forEach(el=>{el.style.transform=`translateX(${dx}px)`;el.classList.add('drag')})});
+ if(!DR.moved&&Math.abs(dx)<6)return;DR.moved=true;DR.dx=dx/SC;
+ DR.els.forEach(el=>{el.style.transform=`translateX(${dx/SC}px)`;el.classList.add('drag')})});
 addEventListener('pointerup',()=>{if(!DR)return;const d=DR;DR=null;if(!d.moved)return;SUP=Date.now();
  const row=LAY.rows[LAY.g[d.id]],others=row.filter(x=>x!==d.u),dropC=d.u.c+d.dx,
   idx=others.filter(x=>x.c<dropC).length,order=[...others.slice(0,idx),d.u,...others.slice(idx)];
@@ -179,3 +187,18 @@ async function delTree(){if(!TREE)return;
  try{const old=TREE;await db.collection('trees').doc(old).delete();
   CODES=CODES.filter(x=>x!==old);delete NAMES[old];persist();TREE=null;sel=null;listen();refreshTrees()}
  catch(e){alert('No se pudo borrar: '+e.message)}}
+
+addEventListener('resize',()=>{clearTimeout(RT);RT=setTimeout(()=>{if(innerWidth!==LASTW)render()},150)});
+
+// ---- Editores (solo admin) ----
+function editorsModal(){if(!TREE)return;
+ const rows=ED.map(u=>`<div class="r">${esc(EN[u]||u)} <button class="d" style="float:right;padding:3px 8px" onclick="rmEditor('${u}')">Quitar</button></div>`).join('')||'<small>Nadie más puede editar este árbol.</small>';
+ modal(`<h3 style="margin-top:0">Editores de «${esc(TN)}»</h3><small>Pueden añadir, editar y quitar miembros. No pueden borrar el árbol ni cambiar los editores. Deben tener ya una cuenta creada.</small><div style="margin:10px 0">${rows}</div><input id="en" placeholder="Nombre de usuario" autocapitalize="none"><div class="err" id="er"></div><button class="p" onclick="addEditor()">Añadir editor</button> <button onclick="hide()">Cerrar</button>`)}
+async function addEditor(){const n=$('en').value.trim().toLowerCase();if(!n)return;
+ if(!/^[a-z0-9_.-]{3,20}$/.test(n))return $('er').textContent='Nombre de usuario no válido';
+ try{const s=await db.collection('usernames').doc(n).get();
+  if(!s.exists)return $('er').textContent='No existe ese usuario. Tiene que crear su cuenta primero.';
+  const u=s.data().uid;if(ED.includes(u))return $('er').textContent='Ya es editor';
+  await db.collection('trees').doc(TREE).update({editors:firebase.firestore.FieldValue.arrayUnion(u),['editorNames.'+u]:n});editorsModal()}
+ catch(e){$('er').textContent='Error: '+(e.code||e.message)}}
+async function rmEditor(u){try{await db.collection('trees').doc(TREE).update({editors:firebase.firestore.FieldValue.arrayRemove(u),['editorNames.'+u]:firebase.firestore.FieldValue.delete()});editorsModal()}catch(e){alert('Error: '+(e.code||e.message))}}

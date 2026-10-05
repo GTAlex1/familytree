@@ -26,3 +26,10 @@ El código es el ID del documento y las reglas no permiten listar árboles, así
 `.github/workflows/deploy.yml` publica la web en cada push a `main` y sustituye `?v=__VERSION__` en `index.html` por el hash del commit, para que el navegador nunca use archivos viejos en caché.
 Una sola vez: Settings → Pages → **Source: GitHub Actions** (en lugar de "Deploy from a branch").
 Solo se publican `index.html`, `style.css`, `app.js` y `firebase-config.js`; si añades más archivos, agrégalos a la línea `cp` del workflow.
+
+## Dar permisos de edición a otras personas
+1. La otra persona crea su cuenta desde la web (Login → Crear cuenta).
+2. Tú, como admin, abres el árbol y pulsas **Editores** → escribes su nombre de usuario → **Añadir editor**.
+3. Esa persona verá el árbol en su selector (aunque no tenga el código) y podrá **añadir, editar, quitar y reordenar** miembros.
+Los editores **no** pueden borrar el árbol, cambiar el código ni gestionar editores. Eso lo aplican las reglas de Firestore (`firestore.rules`), no solo la página.
+Hay que **volver a publicar las reglas** (pestaña Reglas de Firestore) después de actualizar `firestore.rules`.
