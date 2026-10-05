@@ -78,16 +78,3 @@ h1{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 
 .ao{display:none}
 body.isadmin .ao{display:inline-block}
-
-/* Perfil */
-#pb{max-width:34vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-#pb .pn{margin-left:6px}
-#pb.warn{border-color:#d68a00}
-#pb.warn::after{content:" ●";color:#d68a00}
-@media(max-width:600px){#pb .pn{display:none}}
-.pf small{color:var(--mut);display:block;margin-bottom:6px}
-.pf .ok{color:#2e8b57;font-size:13px;min-height:16px}
-.pf .tag{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--rel);font-size:12px;margin-bottom:10px}
-.pf input[disabled]{opacity:.6}
-.gbtn{width:100%;margin:0 0 8px}
-.sep{text-align:center;color:var(--mut);font-size:12px;margin:6px 0}

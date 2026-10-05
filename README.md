@@ -12,7 +12,7 @@ HTML + CSS + JS estático con Firebase (Auth + Firestore). Varios árboles, cada
 1. https://console.firebase.google.com → Crear proyecto.
 2. Compilación → **Firestore Database** → Crear base de datos (modo producción).
 3. Pestaña **Reglas** → pega `firestore.rules` → Publicar.
-4. Compilación → **Authentication** → Comenzar → habilita **Correo electrónico/contraseña** y, si quieres login con Google, **Google** (Método de acceso).
+4. Compilación → **Authentication** → Comenzar → habilita **Correo electrónico/contraseña**.
 5. Configuración del proyecto → Tus apps → Web (</>) → copia la config en `firebase-config.js`.
 6. Authentication → Configuración → Dominios autorizados: añade `TU_USUARIO.github.io`.
 7. Abre la página y **crea tu cuenta de admin** (Login → usuario `Kazus_01` + contraseña → Crear cuenta). Hazlo antes de compartir la web.
@@ -33,11 +33,3 @@ Solo se publican `index.html`, `style.css`, `app.js` y `firebase-config.js`; si 
 3. Esa persona verá el árbol en su selector (aunque no tenga el código) y podrá **añadir, editar, quitar y reordenar** miembros.
 Los editores **no** pueden borrar el árbol, cambiar el código ni gestionar editores. Eso lo aplican las reglas de Firestore (`firestore.rules`), no solo la página.
 Hay que **volver a publicar las reglas** (pestaña Reglas de Firestore) después de actualizar `firestore.rules`.
-
-## Perfil y nombre de usuario
-- Al iniciar sesión aparece el botón 👤 (con el nombre de usuario, o un punto naranja si aún no tiene).
-- Quien entra con **Google** o se registra con **correo** no tiene usuario: en Perfil elige uno (3-20 caracteres, minúsculas, números, `_ . -`). Se guarda en `users/{uid}` y en `usernames/{nombre}`.
-- Las cuentas creadas con usuario + contraseña mantienen ese usuario como nombre de inicio de sesión y no se puede cambiar.
-- Para añadir un editor basta con escribir su nombre de usuario (Editores).
-- Si alguien cambia su nombre, los árboles donde ya era editor siguen mostrando el nombre anterior (el permiso va por UID, no se pierde).
-- **Vuelve a publicar `firestore.rules`** (el perfil necesita permitir `username` en `users` y borrar el propio `usernames`).
