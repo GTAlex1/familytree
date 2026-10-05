@@ -7,3 +7,6 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "286477323322",
   appId: "1:286477323322:web:284a6a53e372be0cb17903"
 };
+
+// UID de la cuenta admin (no es secreto: la seguridad real está en firestore.rules)
+window.ADMIN_UID = "XWZtyD2p7XZbDUjFhBorr2jEPDu2";
