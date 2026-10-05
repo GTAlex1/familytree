@@ -21,3 +21,8 @@ HTML + CSS + JS estático con Firebase (Auth + Firestore). Varios árboles, cada
 
 ## Seguridad
 El código es el ID del documento y las reglas no permiten listar árboles, así que hace falta conocerlo. Hay 26^5 ≈ 11,8 millones de combinaciones; es suficiente para uso familiar, pero no es secreto de nivel bancario. Para endurecerlo, activa Firebase App Check.
+
+## Despliegue automático (GitHub Actions)
+`.github/workflows/deploy.yml` publica la web en cada push a `main` y sustituye `?v=__VERSION__` en `index.html` por el hash del commit, para que el navegador nunca use archivos viejos en caché.
+Una sola vez: Settings → Pages → **Source: GitHub Actions** (en lugar de "Deploy from a branch").
+Solo se publican `index.html`, `style.css`, `app.js` y `firebase-config.js`; si añades más archivos, agrégalos a la línea `cp` del workflow.

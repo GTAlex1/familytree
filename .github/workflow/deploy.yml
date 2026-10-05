@@ -1,0 +1,40 @@
+name: Deploy a GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Sustituye __VERSION__ por el hash corto del commit: style.css?v=a1b2c3d
+      # Así el navegador descarga siempre la última versión tras cada push.
+      - name: Versión automática (cache-busting)
+        run: |
+          V=$(git rev-parse --short HEAD)
+          mkdir _site
+          cp index.html style.css app.js firebase-config.js _site/
+          sed -i "s/__VERSION__/$V/g" _site/index.html
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
