@@ -66,12 +66,12 @@ $('lb').onclick=()=>{if(user){auth.signOut();return}
  modal(`<h3 style="margin-top:0">Cuenta</h3><small>Con cuenta, tus códigos se guardan y no hace falta volver a escribirlos. Como invitado, tendrás que meterlos en cada recarga.</small><input id="u" placeholder="Usuario" autocapitalize="none" style="margin-top:10px"><input id="pw" type="password" placeholder="Contraseña"><div class="err" id="er"></div><button class="p" onclick="login()">Entrar</button> <button onclick="register()">Crear cuenta</button> <button onclick="hide()">Cancelar</button>`)};
 const uname=()=>{const u=$('u').value.trim();return u.includes('@')?u:u.toLowerCase()+'@arbol.local'};
 async function login(){if(!$('u').value.trim()||!$('pw').value)return;
- try{await auth.signInWithEmailAndPassword(uname(),$('pw').value);hide()}catch(e){$('er').textContent='Usuario o contraseña incorrectos'}}
+ try{await auth.signInWithEmailAndPassword(uname(),$('pw').value);hide()}catch(e){console.error(e);$('er').textContent=['auth/invalid-credential','auth/wrong-password','auth/user-not-found','auth/invalid-email'].includes(e.code)?'Usuario o contraseña incorrectos':'Error: '+(e.code||e.message)}}
 async function register(){const u=$('u').value.trim();
  if(!u.includes('@')&&!/^[A-Za-z0-9_.-]{3,20}$/.test(u))return $('er').textContent='Usuario: 3-20 caracteres (letras, números, _ . -)';
  if($('pw').value.length<6)return $('er').textContent='La contraseña necesita al menos 6 caracteres';
  try{await auth.createUserWithEmailAndPassword(uname(),$('pw').value);hide()}
- catch(e){$('er').textContent=e.code==='auth/email-already-in-use'?'Ese usuario ya existe':'No se pudo crear la cuenta'}}
+ catch(e){console.error(e);$('er').textContent=e.code==='auth/email-already-in-use'?'Ese usuario ya existe':'Error: '+(e.code||e.message)}}
 async function isAdmin(u){try{return(await db.collection('admins').doc(u.uid).get()).exists}catch(e){return false}}
 function setAdmin(v){admin=v;$('lb').textContent=user?'Salir':'Login';$('tools').style.display=v?'flex':'none';sel?pick(sel):render()}
 function edit(id){if(!TREE)return alert('Primero abre o crea un árbol');const p=id?by(id):{name:'',g:'f',parents:[],partners:[]},o=P.filter(x=>x.id!==id);
