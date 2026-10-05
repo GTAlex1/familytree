@@ -43,23 +43,26 @@ function gens(){const g={};P.forEach(p=>g[p.id]=0);
   p.partners.forEach(x=>{if(g[x]!==undefined&&g[p.id]<g[x])g[p.id]=g[x]});
   if(!p.parents.length){const k=P.filter(c=>c.parents.includes(p.id));if(k.length){const m=Math.min(...k.map(c=>g[c.id]))-1;if(g[p.id]<m)g[p.id]=m}}});
  return g}
+let LAY=null,DR=null,SUP=0;
 const W=136,H=54,PX=176,RH=124,LM=96,ROM=['I','II','III','IV','V','VI','VII','VIII','IX','X'];
 function layout(g,max){const rows=[],X={};
  for(let i=0;i<=max;i++){const ids=P.filter(p=>g[p.id]===i).map(p=>p.id),seen=new Set(),units=[];
   ids.forEach(id=>{if(seen.has(id))return;const u=[],st=[id];
    while(st.length){const x=st.pop();if(seen.has(x))continue;seen.add(x);u.push(x);by(x).partners.forEach(q=>{if(ids.includes(q)&&!seen.has(q))st.push(q)})}
-   units.push({ids:u.sort((a,b)=>ids.indexOf(a)-ids.indexOf(b)),c:0,d:0})});
+   units.push({ids:u.sort((a,b)=>(by(a).ord??1e9)-(by(b).ord??1e9)||ids.indexOf(a)-ids.indexOf(b)),c:0,d:0})});
   rows.push(units)}
  const avg=a=>a.reduce((s,v)=>s+v,0)/a.length;
  const place=us=>{let prev=null;us.forEach(u=>{const h=u.ids.length*PX/2,min=prev===null?-Infinity:prev+h;
   u.c=isFinite(u.c)?Math.max(u.c,min):(prev===null?h:min);prev=u.c+h;
   u.ids.forEach((id,k)=>X[id]=u.c+(k-(u.ids.length-1)/2)*PX)})};
  rows.forEach(us=>{us.forEach(u=>{const d=u.ids.flatMap(id=>by(id).parents.filter(p=>p in X).map(p=>X[p]));u.d=d.length?avg(d):Infinity});
-  us.sort((a,b)=>a.d===b.d?0:a.d<b.d?-1:1);us.forEach(u=>u.c=isFinite(u.d)?u.d:-Infinity);place(us)});
+  const ok=u=>Math.min(...u.ids.map(i=>by(i).ord??Infinity));
+  us.sort((a,b)=>{const x=ok(a),y=ok(b);if(x!==y)return x<y?-1:1;return a.d===b.d?0:a.d<b.d?-1:1});us.forEach(u=>u.c=isFinite(u.d)?u.d:-Infinity);place(us)});
  for(let i=max-1;i>=0;i--){rows[i].forEach(u=>{const d=u.ids.flatMap(id=>P.filter(c=>c.parents.includes(id)).map(c=>X[c.id]));if(d.length)u.c=avg(d)});place(rows[i])}
- return X}
+ LAY={rows,g};return X}
 function render(){const t=$('tree');
  if(!TREE||!P.length){t.style.width=t.style.height='';t.innerHTML='<p class="em">'+(!TREE?'Introduce un código de 5 letras arriba a la izquierda para ver un árbol.':'Este árbol está vacío.'+(admin?' Añade personas con el botón de arriba.':''))+'</p>';return}
+ t.className=admin?'adm':'';
  const g=gens(),max=Math.max(0,...Object.values(g)),X=layout(g,max),xs=P.map(p=>X[p.id]);
  const sh=LM+W/2+10-Math.min(...xs),wd=Math.max(...xs)+sh+W/2+30,ht=(max+1)*RH+20,RY=i=>10+i*RH+H/2;
  const nb=new Set(sel&&by(sel)?[sel,...by(sel).parents,...by(sel).partners,...P.filter(c=>c.parents.includes(sel)).map(c=>c.id)]:[]);
@@ -70,7 +73,7 @@ function render(){const t=$('tree');
  P.forEach(p=>p.partners.forEach(q=>{if(p.id<q&&by(q)&&g[p.id]===g[q]){const l=X[p.id]<X[q]?p.id:q,r=l===p.id?q:p.id,y=RY(g[p.id]);
   es+=`<line class="e pt${sel?(p.id===sel||q===sel?'':' dim'):''}" x1="${X[l]+sh+W/2}" y1="${y}" x2="${X[r]+sh-W/2}" y2="${y}"/>`}}));
  P.forEach(p=>{const c=p.id===sel?' sel':sel&&!nb.has(p.id)?' dim':'';
-  ns+=`<div class="n${c}" style="left:${X[p.id]+sh-W/2}px;top:${RY(g[p.id])-H/2}px" onclick="pick('${p.id}')"><b>${esc(p.name)}</b><i>GEN ${g[p.id]+1}</i></div>`});
+  ns+=`<div class="n${c}" id="n_${p.id}" style="left:${X[p.id]+sh-W/2}px;top:${RY(g[p.id])-H/2}px" onclick="clk('${p.id}')"><b>${esc(p.name)}</b><i>GEN ${g[p.id]+1}</i></div>`});
  t.style.width=wd+'px';t.style.height=ht+'px';
  t.innerHTML=gl+`<svg width="${wd}" height="${ht}"><defs><marker id="ar" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--hl)"/></marker></defs>${es}</svg>`+ns}
 function pick(id){sel=id;const me=by(id),rs=relations(id);
@@ -154,3 +157,18 @@ else{firebase.initializeApp(cfg);db=firebase.firestore();auth=firebase.auth();
    try{const s=await db.collection('users').doc(u.uid).get();CODES=[...new Set([...(s.exists?s.data().codes||[]:[]),...CODES])];persist()}catch(e){}}
   else{CODES=[];TREE=null;listen()}
   setAdmin(a);refreshTrees()})}
+
+// ---- Arrastrar para reordenar (solo admin) ----
+function clk(id){if(Date.now()-SUP>300)pick(id)}
+$('tree').addEventListener('pointerdown',e=>{
+ if(!admin||!LAY||e.button>0)return;const n=e.target.closest('.n');if(!n)return;
+ const id=n.id.slice(2),u=(LAY.rows[LAY.g[id]]||[]).find(u=>u.ids.includes(id));if(!u)return;
+ DR={id,u,x0:e.clientX,dx:0,moved:false,els:u.ids.map(i=>$('n_'+i))};try{n.setPointerCapture(e.pointerId)}catch(x){}});
+addEventListener('pointermove',e=>{if(!DR)return;const dx=e.clientX-DR.x0;
+ if(!DR.moved&&Math.abs(dx)<6)return;DR.moved=true;DR.dx=dx;
+ DR.els.forEach(el=>{el.style.transform=`translateX(${dx}px)`;el.classList.add('drag')})});
+addEventListener('pointerup',()=>{if(!DR)return;const d=DR;DR=null;if(!d.moved)return;SUP=Date.now();
+ const row=LAY.rows[LAY.g[d.id]],others=row.filter(x=>x!==d.u),dropC=d.u.c+d.dx,
+  idx=others.filter(x=>x.c<dropC).length,order=[...others.slice(0,idx),d.u,...others.slice(idx)];
+ let k=0;order.forEach(u=>u.ids.forEach(i=>by(i).ord=k++));save();render()});
+addEventListener('pointercancel',()=>{if(DR){DR=null;render()}});

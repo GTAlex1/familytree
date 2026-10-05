@@ -47,3 +47,5 @@ h1{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .n.sel{background:var(--selbg);color:#fff}
 .n.sel i{color:#cdd6ff}
 .n.dim{opacity:.3;border-color:var(--ln)}
+#tree.adm .n{cursor:grab;touch-action:none;user-select:none}
+.n.drag{z-index:5;cursor:grabbing;box-shadow:0 8px 20px #0007;transition:none}
